@@ -1,0 +1,7 @@
+[package]
+name = "acpi-rs"
+version = "0.1.0"
+authors = ["ssnover95 <sws7379@rit.edu>"]
+edition = "2018"
+
+[dependencies]
