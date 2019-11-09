@@ -1,5 +1,5 @@
 fn main() -> std::io::Result<()> {
-    let _power_supplies: Vec<acpi_client::PowerSupplyInfo> =
+    let power_supplies: Vec<acpi_client::PowerSupplyInfo> =
         match acpi_client::get_power_supply_info() {
             Ok(ps) => ps,
             Err(e) => {
@@ -7,6 +7,12 @@ fn main() -> std::io::Result<()> {
                 std::process::exit(1);
             }
         };
+
+    for ps in power_supplies {
+        if ps.is_battery {
+            println!("{}", ps);
+        }
+    }
 
     Ok(())
 }

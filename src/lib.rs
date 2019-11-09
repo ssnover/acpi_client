@@ -1,6 +1,12 @@
 use std::error::Error;
+use std::fmt;
 use std::fs;
 use std::io::prelude::*;
+
+pub enum ChargingState {
+    Charging,
+    Discharging,
+}
 
 pub struct PowerSupplyInfo {
     pub name: String,
@@ -17,6 +23,7 @@ pub struct PowerSupplyInfo {
     // pub seconds: Option<u32>,
     // pub percentage: Option<u32>,
     pub is_battery: bool,
+    pub state: Option<ChargingState>,
     // capacity_unit: String,
 }
 
@@ -44,8 +51,20 @@ impl PowerSupplyInfo {
         let last_capacity = parse_file_to_u32(entry, "charge_full", 1000)?;
         let last_capacity_unit = parse_file_to_u32(entry, "energy_full", 1000)?;
         let is_battery = match parse_entry_file(entry, "type")? {
-            Some(val) => val == "battery",
+            Some(val) => val.to_lowercase() == "battery",
             None => false,
+        };
+        let state = match parse_entry_file(entry, "status")? {
+            Some(val) => {
+                if val.trim().to_lowercase() == "charging" {
+                    Some(ChargingState::Charging)
+                } else if val.trim().to_lowercase() == "discharging" {
+                    Some(ChargingState::Discharging)
+                } else {
+                    None
+                }
+            },
+            None => None,
         };
 
         Ok(PowerSupplyInfo {
@@ -59,7 +78,27 @@ impl PowerSupplyInfo {
             last_capacity,
             last_capacity_unit,
             is_battery,
+            state,
         })
+    }
+}
+
+impl fmt::Display for PowerSupplyInfo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if self.is_battery {
+            let state = match &self.state {
+                Some(val) => match val {
+                    ChargingState::Charging => "Charging",
+                    ChargingState::Discharging => "Discharging",
+                },
+                None => "",
+            };
+            write!(f, "{} {}", self.name, state)
+        }
+        else
+        {
+            write!(f, "{}", self.name)
+        }
     }
 }
 
