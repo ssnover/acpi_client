@@ -1,4 +1,4 @@
-# acpi_client
+# acpi-client
 
 This project aims to create an executable in Rust which replaces the functionality of the acpitool provided by many Linux distributions allowing monitoring of laptop batteries, AC power supplies, and thermal systems and associated metadata.
 
