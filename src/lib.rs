@@ -3,9 +3,11 @@ use std::fmt;
 use std::fs;
 use std::io::prelude::*;
 
+#[derive(Clone, Copy)]
 pub enum ChargingState {
     Charging,
     Discharging,
+    Full,
 }
 
 pub struct PowerSupplyInfo {
@@ -59,6 +61,8 @@ impl PowerSupplyInfo {
                     Some(ChargingState::Charging)
                 } else if val.trim().to_lowercase() == "discharging" {
                     Some(ChargingState::Discharging)
+                } else if val.trim().to_lowercase() == "full" {
+                    Some(ChargingState::Full)
                 } else {
                     None
                 }
@@ -71,7 +75,16 @@ impl PowerSupplyInfo {
             None
         };
         let mut seconds = if remaining_capacity.is_some() && present_rate.is_some() {
-            3600 * remaining_capacity.unwrap() / present_rate.unwrap()
+            match state.unwrap() {
+                ChargingState::Discharging => {
+                    3600 * remaining_capacity.unwrap() / (present_rate.unwrap() + 1)
+                }
+                ChargingState::Charging => {
+                    3600 * (last_capacity.unwrap() - remaining_capacity.unwrap())
+                        / present_rate.unwrap()
+                }
+                _ => 0,
+            }
         } else {
             0
         };
@@ -107,18 +120,26 @@ impl fmt::Display for PowerSupplyInfo {
                 Some(val) => match val {
                     ChargingState::Charging => "Charging",
                     ChargingState::Discharging => "Discharging",
+                    ChargingState::Full => "Full",
                 },
                 None => "",
             };
+            let not_full_string = format!(
+                ", {:02}:{:02}:{:02}",
+                self.hours, self.minutes, self.seconds
+            );
+            let charge_time_string = match &self.state.unwrap() {
+                ChargingState::Charging => format!("{} {}", not_full_string, "until charged"),
+                ChargingState::Discharging => format!("{} {}", not_full_string, "remaining"),
+                _ => String::from(""),
+            };
             write!(
                 f,
-                "{}: {}, {}%, {:02}:{:02}:{:02} remaining",
+                "{}: {}, {}%{}",
                 self.name,
                 state,
                 self.percentage.unwrap(),
-                self.hours,
-                self.minutes,
-                self.seconds
+                charge_time_string
             )
         } else {
             write!(f, "{}", self.name)

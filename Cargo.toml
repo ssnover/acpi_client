@@ -3,6 +3,5 @@ name = "acpi_client"
 version = "0.1.0"
 authors = ["ssnover95 <ssnover95@gmail.com>"]
 edition = "2018"
-debug = true
 
 [dependencies]
