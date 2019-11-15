@@ -10,5 +10,6 @@ I'm still learning Rust, criticism of the source where I may not be following be
 
 [![Crates.io][crates-badge]][crates-url]
 
+[crates-badge]: https://img.shields.io/crates/v/acpi_client.svg
 [crates-url]: https://crates.io/crates/acpi_client
 
