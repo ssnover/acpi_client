@@ -9,7 +9,10 @@ Additionally, this repository also sections off the workhorse part of the applic
 I'm still learning Rust, criticism of the source where I may not be following best practices is welcome and appreciated!
 
 [![Crates.io][crates-badge]][crates-url]
+[![MIT licensed][mit-badge]][mit-url]
 
 [crates-badge]: https://img.shields.io/crates/v/acpi_client.svg
 [crates-url]: https://crates.io/crates/acpi_client
+[mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
+[mit-url]: LICENSE
 
