@@ -3,6 +3,7 @@ use std::fmt;
 use std::fs;
 use std::io::prelude::*;
 
+/// Different possible battery charging states.
 #[derive(Clone, Copy)]
 pub enum ChargingState {
     Charging,
@@ -10,6 +11,7 @@ pub enum ChargingState {
     Full,
 }
 
+/// Metadata pertaining to a power supply including batteries and AC adapters.
 pub struct PowerSupplyInfo {
     pub name: String,
     pub remaining_capacity: Option<u32>,
@@ -28,6 +30,7 @@ pub struct PowerSupplyInfo {
     pub state: Option<ChargingState>,
 }
 
+/// Returns a vector of data on power supplies in the system or any errors encountered.
 pub fn get_power_supply_info() -> Result<Vec<PowerSupplyInfo>, Box<dyn Error>> {
     let mut results: Vec<PowerSupplyInfo> = vec![];
     let power_supply_path = "/sys/class/power_supply";
@@ -40,6 +43,22 @@ pub fn get_power_supply_info() -> Result<Vec<PowerSupplyInfo>, Box<dyn Error>> {
 }
 
 impl PowerSupplyInfo {
+    /// Returns a power supply corresponding to a given ACPI device path.
+    ///
+    /// # Arguments
+    ///
+    /// * `entry` - A directory entry of an ACPI device containing data files for the device
+    ///
+    /// # Example
+    /// ```
+    /// use std::fs;
+    /// let directory = fs::read_dir("/sys/class/power_supply");
+    /// if directory.is_ok() {
+    ///     for entry in directory.unwrap() {
+    ///         let ps_info = acpi_client::PowerSupplyInfo::new(&entry.unwrap());
+    ///     }
+    /// }
+    /// ```
     pub fn new(entry: &fs::DirEntry) -> Result<PowerSupplyInfo, Box<dyn Error>> {
         let name = entry.file_name().into_string().unwrap();
 
@@ -114,6 +133,7 @@ impl PowerSupplyInfo {
 }
 
 impl fmt::Display for PowerSupplyInfo {
+    /// Creates a string representation of a power supply's state from its data.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.is_battery {
             let state = match &self.state {
@@ -147,6 +167,12 @@ impl fmt::Display for PowerSupplyInfo {
     }
 }
 
+/// Returns a string parsed from a file in a directory.
+///
+/// # Arguments
+///
+/// * `entry` - A directory entry representing a directory
+/// * `file` - A string slice containing a plain filename
 fn parse_entry_file(
     entry: &fs::DirEntry,
     file: &'static str,
@@ -167,6 +193,13 @@ fn parse_entry_file(
     Ok(None)
 }
 
+/// Parses a file and converts the resulting contents to an integer.
+///
+/// # Arguments
+///
+/// * `entry` - A directory entry representing a directory
+/// * `file` - A string slice containing a plain filename
+/// * `scalar` - A number to divide the output by before returning it
 fn parse_file_to_u32(
     entry: &fs::DirEntry,
     file: &'static str,

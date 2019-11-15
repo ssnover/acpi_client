@@ -8,3 +8,7 @@ Additionally, this repository also sections off the workhorse part of the applic
 
 I'm still learning Rust, criticism of the source where I may not be following best practices is welcome and appreciated!
 
+[![Crates.io][crates-badge]][crates-url]
+
+[crates-url]: https://crates.io/crates/acpi_client
+
