@@ -2,6 +2,7 @@ use std::error::Error;
 use std::fmt;
 use std::fs;
 use std::io::prelude::*;
+use std::path;
 
 /// Different possible battery charging states.
 #[derive(Clone, Copy)]
@@ -33,7 +34,7 @@ pub struct PowerSupplyInfo {
 /// Returns a vector of data on power supplies in the system or any errors encountered.
 pub fn get_power_supply_info() -> Result<Vec<PowerSupplyInfo>, Box<dyn Error>> {
     let mut results: Vec<PowerSupplyInfo> = vec![];
-    let power_supply_path = "/sys/class/power_supply";
+    let power_supply_path = path::Path::new("/sys/class/power_supply");
 
     for entry in fs::read_dir(&power_supply_path)? {
         results.push(PowerSupplyInfo::new(&entry?)?);
@@ -61,20 +62,21 @@ impl PowerSupplyInfo {
     /// ```
     pub fn new(entry: &fs::DirEntry) -> Result<PowerSupplyInfo, Box<dyn Error>> {
         let name = entry.file_name().into_string().unwrap();
+        let base_path = entry.path();
 
-        let voltage = parse_file_to_u32(entry, "voltage_now", 1000)?;
-        let remaining_capacity = parse_file_to_u32(entry, "charge_now", 1000)?;
-        let remaining_energy = parse_file_to_u32(entry, "energy_now", 1000)?;
-        let present_rate = parse_file_to_u32(entry, "current_now", 1000)?;
-        let design_capacity = parse_file_to_u32(entry, "charge_full_design", 1000)?;
-        let design_capacity_unit = parse_file_to_u32(entry, "energy_full_design", 1000)?;
-        let last_capacity = parse_file_to_u32(entry, "charge_full", 1000)?;
-        let last_capacity_unit = parse_file_to_u32(entry, "energy_full", 1000)?;
-        let is_battery = match parse_entry_file(entry, "type")? {
+        let voltage = parse_file_to_u32(&base_path.join("voltage_now"), 1000)?;
+        let remaining_capacity = parse_file_to_u32(&base_path.join("charge_now"), 1000)?;
+        let remaining_energy = parse_file_to_u32(&base_path.join("energy_now"), 1000)?;
+        let present_rate = parse_file_to_u32(&base_path.join("current_now"), 1000)?;
+        let design_capacity = parse_file_to_u32(&base_path.join("charge_full_design"), 1000)?;
+        let design_capacity_unit = parse_file_to_u32(&base_path.join("energy_full_design"), 1000)?;
+        let last_capacity = parse_file_to_u32(&base_path.join("charge_full"), 1000)?;
+        let last_capacity_unit = parse_file_to_u32(&base_path.join("energy_full"), 1000)?;
+        let is_battery = match parse_entry_file(&base_path.join("type"))? {
             Some(val) => val.to_lowercase() == "battery",
             None => false,
         };
-        let state = match parse_entry_file(entry, "status")? {
+        let state = match parse_entry_file(&base_path.join("status"))? {
             Some(val) => {
                 if val.trim().to_lowercase() == "charging" {
                     Some(ChargingState::Charging)
@@ -171,23 +173,15 @@ impl fmt::Display for PowerSupplyInfo {
 ///
 /// # Arguments
 ///
-/// * `entry` - A directory entry representing a directory
-/// * `file` - A string slice containing a plain filename
-fn parse_entry_file(
-    entry: &fs::DirEntry,
-    file: &'static str,
-) -> Result<Option<String>, Box<dyn Error>> {
-    let mut path = entry.path();
-    path.push(file);
+/// * `path` - A path to the file to parse
+fn parse_entry_file(path: &path::Path) -> Result<Option<String>, Box<dyn Error>> {
     let mut result = String::new();
 
     if path.is_file() {
-        if let Some(filename) = path.to_str() {
-            let mut f = fs::File::open(filename)?;
-            f.read_to_string(&mut result)?;
-            let contents = result.trim();
-            return Ok(Some(String::from(contents)));
-        }
+        let mut f = fs::File::open(path)?;
+        f.read_to_string(&mut result)?;
+        let result = result.trim();
+        return Ok(Some(String::from(result)));
     }
 
     Ok(None)
@@ -197,15 +191,10 @@ fn parse_entry_file(
 ///
 /// # Arguments
 ///
-/// * `entry` - A directory entry representing a directory
-/// * `file` - A string slice containing a plain filename
+/// * `path` - A path to the file to parse
 /// * `scalar` - A number to divide the output by before returning it
-fn parse_file_to_u32(
-    entry: &fs::DirEntry,
-    file: &'static str,
-    scalar: u32,
-) -> Result<Option<u32>, Box<dyn Error>> {
-    let result = match parse_entry_file(entry, file)? {
+fn parse_file_to_u32(path: &path::Path, scalar: u32) -> Result<Option<u32>, Box<dyn Error>> {
+    let result = match parse_entry_file(path)? {
         Some(val) => Some(val.parse::<u32>()? / scalar),
         None => None,
     };
