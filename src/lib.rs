@@ -53,19 +53,15 @@ impl PowerSupplyInfo {
     ///
     /// # Example
     /// ```
-    /// use std::path;
-    /// let directory = path::Path::new("/sys/class/power_supply/BAT1");
+    /// let directory = std::path::Path::new("/sys/class/power_supply/BAT1");
     /// let ps_info = acpi_client::PowerSupplyInfo::new(&directory);
     /// ```
     pub fn new(path: &path::Path) -> Result<PowerSupplyInfo, Box<dyn Error>> {
         let voltage = parse_file_to_u32(&path.join("voltage_now"), 1000)?;
         let remaining_capacity = parse_file_to_u32(&path.join("charge_now"), 1000)?;
-        let remaining_energy = parse_file_to_u32(&path.join("energy_now"), 1000)?;
         let present_rate = parse_file_to_u32(&path.join("current_now"), 1000)?;
         let design_capacity = parse_file_to_u32(&path.join("charge_full_design"), 1000)?;
-        let design_capacity_unit = parse_file_to_u32(&path.join("energy_full_design"), 1000)?;
         let last_capacity = parse_file_to_u32(&path.join("charge_full"), 1000)?;
-        let last_capacity_unit = parse_file_to_u32(&path.join("energy_full"), 1000)?;
         let is_battery = match parse_entry_file(&path.join("type"))? {
             Some(val) => val.to_lowercase() == "battery",
             None => false,
@@ -89,6 +85,7 @@ impl PowerSupplyInfo {
         } else {
             None
         };
+        // TODO: Add more logic to properly circumvent no current reported when close to Full
         let mut seconds = if remaining_capacity.is_some() && present_rate.is_some() {
             match state.unwrap() {
                 ChargingState::Discharging => {
@@ -96,7 +93,7 @@ impl PowerSupplyInfo {
                 }
                 ChargingState::Charging => {
                     3600 * (last_capacity.unwrap() - remaining_capacity.unwrap())
-                        / present_rate.unwrap()
+                        / (present_rate.unwrap() + 1)
                 }
                 _ => 0,
             }
@@ -108,6 +105,11 @@ impl PowerSupplyInfo {
         let minutes = seconds / 60;
         seconds = seconds - (60 * minutes);
 
+        // These are related to mWh-reporting systems
+        let remaining_energy = parse_file_to_u32(&path.join("energy_now"), 1000)?;
+        let design_capacity_unit = parse_file_to_u32(&path.join("energy_full_design"), 1000)?; 
+        let last_capacity_unit = parse_file_to_u32(&path.join("energy_full"), 1000)?;
+        
         let name = String::from(path.file_name().unwrap().to_str().unwrap());
         Ok(PowerSupplyInfo {
             name,
