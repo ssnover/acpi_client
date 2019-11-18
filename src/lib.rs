@@ -37,7 +37,8 @@ pub fn get_power_supply_info() -> Result<Vec<PowerSupplyInfo>, Box<dyn Error>> {
     let power_supply_path = path::Path::new("/sys/class/power_supply");
 
     for entry in fs::read_dir(&power_supply_path)? {
-        results.push(PowerSupplyInfo::new(&entry?)?);
+        let path = entry?.path();
+        results.push(PowerSupplyInfo::new(&path)?);
     }
 
     Ok(results)
@@ -48,35 +49,28 @@ impl PowerSupplyInfo {
     ///
     /// # Arguments
     ///
-    /// * `entry` - A directory entry of an ACPI device containing data files for the device
+    /// * `path` - A path to a directory entry of an ACPI device containing data files for the device
     ///
     /// # Example
     /// ```
-    /// use std::fs;
-    /// let directory = fs::read_dir("/sys/class/power_supply");
-    /// if directory.is_ok() {
-    ///     for entry in directory.unwrap() {
-    ///         let ps_info = acpi_client::PowerSupplyInfo::new(&entry.unwrap());
-    ///     }
-    /// }
+    /// use std::path;
+    /// let directory = path::Path::new("/sys/class/power_supply/BAT1");
+    /// let ps_info = acpi_client::PowerSupplyInfo::new(&directory);
     /// ```
-    pub fn new(entry: &fs::DirEntry) -> Result<PowerSupplyInfo, Box<dyn Error>> {
-        let name = entry.file_name().into_string().unwrap();
-        let base_path = entry.path();
-
-        let voltage = parse_file_to_u32(&base_path.join("voltage_now"), 1000)?;
-        let remaining_capacity = parse_file_to_u32(&base_path.join("charge_now"), 1000)?;
-        let remaining_energy = parse_file_to_u32(&base_path.join("energy_now"), 1000)?;
-        let present_rate = parse_file_to_u32(&base_path.join("current_now"), 1000)?;
-        let design_capacity = parse_file_to_u32(&base_path.join("charge_full_design"), 1000)?;
-        let design_capacity_unit = parse_file_to_u32(&base_path.join("energy_full_design"), 1000)?;
-        let last_capacity = parse_file_to_u32(&base_path.join("charge_full"), 1000)?;
-        let last_capacity_unit = parse_file_to_u32(&base_path.join("energy_full"), 1000)?;
-        let is_battery = match parse_entry_file(&base_path.join("type"))? {
+    pub fn new(path: &path::Path) -> Result<PowerSupplyInfo, Box<dyn Error>> {
+        let voltage = parse_file_to_u32(&path.join("voltage_now"), 1000)?;
+        let remaining_capacity = parse_file_to_u32(&path.join("charge_now"), 1000)?;
+        let remaining_energy = parse_file_to_u32(&path.join("energy_now"), 1000)?;
+        let present_rate = parse_file_to_u32(&path.join("current_now"), 1000)?;
+        let design_capacity = parse_file_to_u32(&path.join("charge_full_design"), 1000)?;
+        let design_capacity_unit = parse_file_to_u32(&path.join("energy_full_design"), 1000)?;
+        let last_capacity = parse_file_to_u32(&path.join("charge_full"), 1000)?;
+        let last_capacity_unit = parse_file_to_u32(&path.join("energy_full"), 1000)?;
+        let is_battery = match parse_entry_file(&path.join("type"))? {
             Some(val) => val.to_lowercase() == "battery",
             None => false,
         };
-        let state = match parse_entry_file(&base_path.join("status"))? {
+        let state = match parse_entry_file(&path.join("status"))? {
             Some(val) => {
                 if val.trim().to_lowercase() == "charging" {
                     Some(ChargingState::Charging)
@@ -114,6 +108,7 @@ impl PowerSupplyInfo {
         let minutes = seconds / 60;
         seconds = seconds - (60 * minutes);
 
+        let name = String::from(path.file_name().unwrap().to_str().unwrap());
         Ok(PowerSupplyInfo {
             name,
             remaining_capacity,
