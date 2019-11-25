@@ -13,10 +13,9 @@ pub enum ChargingState {
     Full,
 }
 
-/// Metadata pertaining to a power supply including batteries and AC adapters.
-pub struct PowerSupplyInfo {
+/// Metadata pertaining to a battery including batteries and AC adapters.
+pub struct BatteryInfo {
     pub name: String,
-    pub is_battery: bool,
     pub remaining_capacity: u32,
     pub present_rate: u32,
     pub voltage: u32,
@@ -28,23 +27,25 @@ pub struct PowerSupplyInfo {
 }
 
 /// Returns a vector of data on power supplies in the system or any errors encountered.
-pub fn get_power_supply_info() -> Result<Vec<PowerSupplyInfo>, Box<dyn Error>> {
-    let mut results: Vec<PowerSupplyInfo> = vec![];
+pub fn get_battery_info() -> Result<Vec<BatteryInfo>, Box<dyn Error>> {
+    let mut results: Vec<BatteryInfo> = vec![];
     let power_supply_path = path::Path::new("/sys/class/power_supply");
 
     for entry in fs::read_dir(&power_supply_path)? {
         let path = entry?.path();
-        let ps = PowerSupplyInfo::new(&path);
-        if ps.is_ok() {
-            results.push(ps?);
+        if determine_is_battery(parse_entry_file(&path.join("type"))?.unwrap()) {
+            let ps = BatteryInfo::new(&path);
+            if ps.is_ok() {
+                results.push(ps?);
+            }
         }
     }
 
     Ok(results)
 }
 
-impl PowerSupplyInfo {
-    /// Returns a power supply corresponding to a given ACPI device path.
+impl BatteryInfo {
+    /// Returns a battery corresponding to a given ACPI device path.
     ///
     /// # Arguments
     ///
@@ -53,29 +54,23 @@ impl PowerSupplyInfo {
     /// # Example
     /// ```
     /// let directory = std::path::Path::new("/sys/class/power_supply/BAT1");
-    /// let ps_info = acpi_client::PowerSupplyInfo::new(&directory);
+    /// let ps_info = acpi_client::BatteryInfo::new(&directory);
     /// ```
-    pub fn new(path: &path::Path) -> Result<PowerSupplyInfo, Box<dyn Error>> {
+    pub fn new(path: &path::Path) -> Result<BatteryInfo, Box<dyn Error>> {
         // Check whether the system reports energy or capacity
-        if determine_is_battery(parse_entry_file(&path.join("type"))?.unwrap()) {
-
         match determine_reporting_type(&path)? {
             ReportType::Capacity => return parse_capacity_supply(&path),
             ReportType::Energy => return parse_energy_supply(&path),
         }
-        } else {
-            return Err(Box::new(AcpiError("AC power supplies not yet supported".into())));
-        }
     }
 }
 
-fn parse_capacity_supply(path: &path::Path) -> Result<PowerSupplyInfo, Box<dyn Error>> {
+fn parse_capacity_supply(path: &path::Path) -> Result<BatteryInfo, Box<dyn Error>> {
     let voltage = parse_file_to_u32(&path.join("voltage_now"), 1000)?.unwrap();
     let remaining_capacity = parse_file_to_u32(&path.join("charge_now"), 1000)?.unwrap();
     let present_rate = parse_file_to_u32(&path.join("current_now"), 1000)?.unwrap();
     let design_capacity = parse_file_to_u32(&path.join("charge_full_design"), 1000)?.unwrap();
     let last_capacity = parse_file_to_u32(&path.join("charge_full"), 1000)?.unwrap();
-    let is_battery = determine_is_battery(parse_entry_file(&path.join("type"))?.unwrap());
     let status_str = parse_entry_file(&path.join("status"))?
         .unwrap()
         .trim()
@@ -98,9 +93,8 @@ fn parse_capacity_supply(path: &path::Path) -> Result<PowerSupplyInfo, Box<dyn E
     );
     let name = String::from(path.file_name().unwrap().to_str().unwrap());
 
-    Ok(PowerSupplyInfo {
+    Ok(BatteryInfo {
         name,
-        is_battery,
         remaining_capacity: remaining_capacity,
         present_rate: present_rate,
         voltage: voltage,
@@ -112,14 +106,13 @@ fn parse_capacity_supply(path: &path::Path) -> Result<PowerSupplyInfo, Box<dyn E
     })
 }
 
-fn parse_energy_supply(path: &path::Path) -> Result<PowerSupplyInfo, Box<dyn Error>> {
+fn parse_energy_supply(path: &path::Path) -> Result<BatteryInfo, Box<dyn Error>> {
     let voltage = parse_file_to_u32(&path.join("voltage_now"), 1000)?.unwrap();
     let remaining_capacity = parse_file_to_u32(&path.join("energy_now"), 1000)?.unwrap() / voltage;
     let present_rate = parse_file_to_u32(&path.join("current_now"), 1000)?.unwrap();
     let design_capacity =
         parse_file_to_u32(&path.join("energy_full_design"), 1000)?.unwrap() / voltage;
     let last_capacity = parse_file_to_u32(&path.join("energy_full"), 1000)?.unwrap() / voltage;
-    let is_battery = determine_is_battery(parse_entry_file(&path.join("type"))?.unwrap());
     let status_str = parse_entry_file(&path.join("status"))?
         .unwrap()
         .trim()
@@ -142,9 +135,8 @@ fn parse_energy_supply(path: &path::Path) -> Result<PowerSupplyInfo, Box<dyn Err
     );
     let name = String::from(path.file_name().unwrap().to_str().unwrap());
 
-    Ok(PowerSupplyInfo {
+    Ok(BatteryInfo {
         name,
-        is_battery,
         remaining_capacity,
         present_rate,
         voltage,
@@ -232,7 +224,7 @@ impl fmt::Display for AcpiError {
 
 impl Error for AcpiError {}
 
-/// Checks the filesystem to determine if the power supply reports capacity or energy
+/// Checks the filesystem to determine if the battery reports capacity or energy
 ///
 /// # Arguments
 ///
