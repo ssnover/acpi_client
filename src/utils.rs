@@ -1,0 +1,52 @@
+use std::error::Error;
+use std::fmt;
+use std::fs;
+use std::io::prelude::*;
+use std::path;
+
+#[derive(Debug)]
+pub struct AcpiError(pub String);
+
+impl fmt::Display for AcpiError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "acpi_client error: {}", self.0)
+    }
+}
+
+impl Error for AcpiError {}
+
+pub fn determine_is_battery(data: String) -> bool {
+    data.to_lowercase() == "battery"
+}
+
+/// Returns a string parsed from a file in a directory.
+///
+/// # Arguments
+///
+/// * `path` - A path to the file to parse
+pub fn parse_entry_file(path: &path::Path) -> Result<Option<String>, Box<dyn Error>> {
+    let mut result = String::new();
+
+    if path.is_file() {
+        let mut f = fs::File::open(path)?;
+        f.read_to_string(&mut result)?;
+        let result = result.trim();
+        return Ok(Some(String::from(result)));
+    }
+
+    Ok(None)
+}
+
+/// Parses a file and converts the resulting contents to an integer.
+///
+/// # Arguments
+///
+/// * `path` - A path to the file to parse
+/// * `scalar` - A number to divide the output by before returning it
+pub fn parse_file_to_u32(path: &path::Path, scalar: u32) -> Result<Option<u32>, Box<dyn Error>> {
+    let result = match parse_entry_file(path)? {
+        Some(val) => Some(val.parse::<u32>()? / scalar),
+        None => None,
+    };
+    Ok(result)
+}

@@ -1,9 +1,9 @@
 use std::error::Error;
-use std::fmt;
 use std::fs;
-use std::io::prelude::*;
 use std::path;
 use std::time;
+
+use crate::utils::*;
 
 /// Different possible battery charging states.
 #[derive(Clone, Copy)]
@@ -27,11 +27,10 @@ pub struct BatteryInfo {
 }
 
 /// Returns a vector of data on power supplies in the system or any errors encountered.
-pub fn get_battery_info() -> Result<Vec<BatteryInfo>, Box<dyn Error>> {
+pub fn get_battery_info(path: &path::Path) -> Result<Vec<BatteryInfo>, Box<dyn Error>> {
     let mut results: Vec<BatteryInfo> = vec![];
-    let power_supply_path = path::Path::new("/sys/class/power_supply");
 
-    for entry in fs::read_dir(&power_supply_path)? {
+    for entry in fs::read_dir(&path)? {
         let path = entry?.path();
         if determine_is_battery(parse_entry_file(&path.join("type"))?.unwrap()) {
             let ps = BatteryInfo::new(&path);
@@ -148,10 +147,6 @@ fn parse_energy_supply(path: &path::Path) -> Result<BatteryInfo, Box<dyn Error>>
     })
 }
 
-fn determine_is_battery(data: String) -> bool {
-    data.to_lowercase() == "battery"
-}
-
 fn determine_charge_percentage(remaining_capacity: u32, full_capacity: u32) -> f32 {
     (remaining_capacity as f32) * 100.0 / (full_capacity as f32)
 }
@@ -175,54 +170,11 @@ fn determine_time_to_state_change(
     }
 }
 
-/// Returns a string parsed from a file in a directory.
-///
-/// # Arguments
-///
-/// * `path` - A path to the file to parse
-fn parse_entry_file(path: &path::Path) -> Result<Option<String>, Box<dyn Error>> {
-    let mut result = String::new();
-
-    if path.is_file() {
-        let mut f = fs::File::open(path)?;
-        f.read_to_string(&mut result)?;
-        let result = result.trim();
-        return Ok(Some(String::from(result)));
-    }
-
-    Ok(None)
-}
-
-/// Parses a file and converts the resulting contents to an integer.
-///
-/// # Arguments
-///
-/// * `path` - A path to the file to parse
-/// * `scalar` - A number to divide the output by before returning it
-fn parse_file_to_u32(path: &path::Path, scalar: u32) -> Result<Option<u32>, Box<dyn Error>> {
-    let result = match parse_entry_file(path)? {
-        Some(val) => Some(val.parse::<u32>()? / scalar),
-        None => None,
-    };
-    Ok(result)
-}
-
 #[derive(Clone)]
 enum ReportType {
     Capacity,
     Energy,
 }
-
-#[derive(Debug)]
-struct AcpiError(String);
-
-impl fmt::Display for AcpiError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "acpi_client error: {}", self.0)
-    }
-}
-
-impl Error for AcpiError {}
 
 /// Checks the filesystem to determine if the battery reports capacity or energy
 ///
