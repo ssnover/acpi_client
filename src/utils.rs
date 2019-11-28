@@ -19,6 +19,11 @@ pub fn determine_is_battery(data: String) -> bool {
     data.to_lowercase() == "battery"
 }
 
+pub fn is_thermal_sensor(device_path: &path::Path) -> bool {
+    let temperature_file_path = device_path.to_path_buf().join("temp");
+    temperature_file_path.exists()
+}
+
 /// Returns a string parsed from a file in a directory.
 ///
 /// # Arguments

@@ -17,7 +17,7 @@ pub struct ACAdapterInfo {
 
 pub fn get_ac_adapter_info(path: &path::Path) -> Result<Vec<ACAdapterInfo>, Box<dyn Error>> {
     let mut results: Vec<ACAdapterInfo> = vec![];
-    
+
     for entry in read_dir(&path)? {
         let path = entry?.path();
         if !determine_is_battery(parse_entry_file(&path.join("type"))?.unwrap()) {
