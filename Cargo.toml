@@ -1,6 +1,6 @@
 [package]
 name = "acpi_client"
-version = "0.2.0"
+version = "1.0.0"
 authors = ["ssnover95 <ssnover95@gmail.com>"]
 edition = "2018"
 description = "A library for parsing ACPI data from the Linux filesystem."
