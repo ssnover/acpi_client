@@ -65,11 +65,11 @@ impl BatteryInfo {
 }
 
 fn parse_capacity_supply(path: &path::Path) -> Result<BatteryInfo, Box<dyn Error>> {
-    let voltage = parse_file_to_u32(&path.join("voltage_now"), 1000)?.unwrap();
-    let remaining_capacity = parse_file_to_u32(&path.join("charge_now"), 1000)?.unwrap();
-    let present_rate = parse_file_to_u32(&path.join("current_now"), 1000)?.unwrap();
-    let design_capacity = parse_file_to_u32(&path.join("charge_full_design"), 1000)?.unwrap();
-    let last_capacity = parse_file_to_u32(&path.join("charge_full"), 1000)?.unwrap();
+    let voltage = parse_file_to_i32(&path.join("voltage_now"), 1000)?.unwrap() as u32;
+    let remaining_capacity = parse_file_to_i32(&path.join("charge_now"), 1000)?.unwrap() as u32;
+    let present_rate = parse_file_to_i32(&path.join("current_now"), 1000)?.unwrap() as u32;
+    let design_capacity = parse_file_to_i32(&path.join("charge_full_design"), 1000)?.unwrap() as u32;
+    let last_capacity = parse_file_to_i32(&path.join("charge_full"), 1000)?.unwrap() as u32;
     let status_str = parse_entry_file(&path.join("status"))?
         .unwrap()
         .trim()
@@ -106,12 +106,12 @@ fn parse_capacity_supply(path: &path::Path) -> Result<BatteryInfo, Box<dyn Error
 }
 
 fn parse_energy_supply(path: &path::Path) -> Result<BatteryInfo, Box<dyn Error>> {
-    let voltage = parse_file_to_u32(&path.join("voltage_now"), 1000)?.unwrap();
-    let remaining_capacity = parse_file_to_u32(&path.join("energy_now"), 1000)?.unwrap() / voltage;
-    let present_rate = parse_file_to_u32(&path.join("current_now"), 1000)?.unwrap();
+    let voltage = parse_file_to_i32(&path.join("voltage_now"), 1000)?.unwrap() as u32;
+    let remaining_capacity = parse_file_to_i32(&path.join("energy_now"), 1000)?.unwrap() as u32 / voltage;
+    let present_rate = parse_file_to_i32(&path.join("current_now"), 1000)?.unwrap() as u32;
     let design_capacity =
-        parse_file_to_u32(&path.join("energy_full_design"), 1000)?.unwrap() / voltage;
-    let last_capacity = parse_file_to_u32(&path.join("energy_full"), 1000)?.unwrap() / voltage;
+        parse_file_to_i32(&path.join("energy_full_design"), 1000)?.unwrap() as u32 / voltage;
+    let last_capacity = parse_file_to_i32(&path.join("energy_full"), 1000)?.unwrap() as u32 / voltage;
     let status_str = parse_entry_file(&path.join("status"))?
         .unwrap()
         .trim()

@@ -49,7 +49,7 @@ impl ThermalSensor {
         let name = String::from(path.file_name().unwrap().to_str().unwrap());
         let mut trip_points: Vec<TripPoint> = vec![];
         let current_temperature =
-            convert_from_celsius((parse_file_to_u32(&path.join("temp"), 1)?.unwrap() as f32) / 1000., units);
+            convert_from_celsius((parse_file_to_i32(&path.join("temp"), 1)?.unwrap() as f32) / 1000., units);
 
         let mut trip_point_counter: u8 = 0;
         loop {
@@ -78,7 +78,7 @@ impl ThermalSensor {
 impl TripPoint {
     pub fn new(path: &path::Path, number: u8, units: Units) -> Result<TripPoint, Box<dyn Error>> {
         let action_type = String::from(parse_entry_file(&path.join(format!("trip_point_{}_type", number)))?.unwrap());
-        let temperature_c = (parse_file_to_u32(&path.join(format!("trip_point_{}_temp", number)), 1)?.unwrap() as f32) / 1000.; 
+        let temperature_c = (parse_file_to_i32(&path.join(format!("trip_point_{}_temp", number)), 1)?.unwrap() as f32) / 1000.; 
 
         Ok(TripPoint {
             number,

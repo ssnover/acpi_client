@@ -48,9 +48,9 @@ pub fn parse_entry_file(path: &path::Path) -> Result<Option<String>, Box<dyn Err
 ///
 /// * `path` - A path to the file to parse
 /// * `scalar` - A number to divide the output by before returning it
-pub fn parse_file_to_u32(path: &path::Path, scalar: u32) -> Result<Option<u32>, Box<dyn Error>> {
+pub fn parse_file_to_i32(path: &path::Path, scalar: i32) -> Result<Option<i32>, Box<dyn Error>> {
     let result = match parse_entry_file(path)? {
-        Some(val) => Some(val.parse::<u32>()? / scalar),
+        Some(val) => Some(val.parse::<i32>()? / scalar),
         None => None,
     };
     Ok(result)
