@@ -1,6 +1,6 @@
 # acpi-client
 
-This project aims to create a library in Rust which replaces the functionality of the acpitool provided by many Linux distributions allowing monitoring of laptop batteries, AC power supplies, and thermal systems and associated metadata. The binary executable which replicates the tool's function can be found at https://github/com/ssnover95/acpitool 
+This project aims to create a library in Rust which replaces the functionality of the acpitool provided by many Linux distributions allowing monitoring of laptop batteries, AC power supplies, and thermal systems and associated metadata. The binary executable which replicates the tool's function can be found at https://github.com/ssnover95/acpitool 
 
 I'm still learning Rust, criticism of the source where I may not be following best practices is welcome and appreciated!
 
