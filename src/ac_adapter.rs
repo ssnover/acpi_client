@@ -4,7 +4,7 @@ use std::path;
 
 use crate::utils::*;
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Status {
     Online,
     Offline,
