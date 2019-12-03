@@ -1,0 +1,27 @@
+trigger:
+  branches:
+    include: ['*']
+
+jobs:
+  - job: 'Build'
+    pool:
+      vmImage: 'ubuntu-18.04'
+    steps:
+      - script: |
+          curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $RUSTUP_TOOLCHAIN
+          echo "##vso[task.setvariable variable=PATH;]$PATH:$HOME/.cargo/bin"
+          cargo build --release --all
+        displayName: Build crate
+      - script: |
+          cargo test
+        displayName: Test crate
+  - job: 'Rustfmt'
+    pool:
+      vmImage: 'ubuntu-18.04'
+    container: 'rust:latest'
+    condition: eq(variables['Build.Reason'], 'PullRequest')
+    steps:
+      - script: rustup component add rustfmt
+        displayName: Install Rustfmt
+      - script: cargo fmt --all -- --check
+        displayName: Run fmt
