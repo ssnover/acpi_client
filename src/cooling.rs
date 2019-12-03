@@ -40,7 +40,10 @@ impl CoolingDevice {
         let device_type = parse_entry_file(&path.join("type"))?.unwrap();
 
         let status = if current_state >= 0 {
-            Some(CoolingStatus {current_state, max_state})
+            Some(CoolingStatus {
+                current_state,
+                max_state,
+            })
         } else {
             None
         };
@@ -50,5 +53,4 @@ impl CoolingDevice {
             device_type,
         })
     }
-
 }

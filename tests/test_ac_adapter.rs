@@ -11,8 +11,7 @@ mod tests {
         writeln!(file, "Mains").unwrap();
         let mut file = std::fs::File::create(&mock_path.join("online")).unwrap();
         writeln!(file, "1").unwrap();
-        
-        
+
         let adapters = acpi_client::get_ac_adapter_info(&dir.path());
         assert!(adapters.is_ok());
         assert_eq!(adapters.unwrap().len(), 1);
@@ -40,5 +39,4 @@ mod tests {
         drop(file);
         dir.close().unwrap();
     }
-
 }
