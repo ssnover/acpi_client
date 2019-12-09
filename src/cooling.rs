@@ -4,18 +4,30 @@ use std::path;
 
 use crate::utils::*;
 
+/// State information on a cooling device's activity.
 #[derive(Clone, Copy)]
 pub struct CoolingStatus {
+    /// The current level of the cooling device relative to the max_state
     pub current_state: i32,
+    /// The maximum level of activity of the cooling device.
     pub max_state: i32,
 }
 
+/// Information about cooling devices available to the system.
 pub struct CoolingDevice {
+    /// The name used by ACPI to refer to the device.
     pub name: String,
+    /// The activity state of the device.
     pub state: Option<CoolingStatus>,
+    /// The type of device the cooling device is attached to.
     pub device_type: String,
 }
 
+/// Check the ACPI system for all cooling devices available to the system.
+///
+/// # Arguments
+///
+/// * `path` - The path to the cooling device entries produced by the ACPI subsystem.
 pub fn get_cooling_device_info(path: &path::Path) -> Result<Vec<CoolingDevice>, Box<dyn Error>> {
     let mut results: Vec<CoolingDevice> = vec![];
 
@@ -33,6 +45,11 @@ pub fn get_cooling_device_info(path: &path::Path) -> Result<Vec<CoolingDevice>, 
 }
 
 impl CoolingDevice {
+    /// Create a new cooling device object from data from the ACPI subsystem.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The path to the cooling device entry.
     pub fn new(path: &path::Path) -> Result<CoolingDevice, Box<dyn Error>> {
         let name = String::from(path.file_name().unwrap().to_str().unwrap());
         let current_state = parse_file_to_i32(&path.join("cur_state"), 1)?.unwrap();
