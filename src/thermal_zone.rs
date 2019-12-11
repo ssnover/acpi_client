@@ -4,6 +4,7 @@ use std::path;
 
 use crate::utils::*;
 
+/// An enumeration of the units with which the applications is displaying temperature data.
 #[derive(Clone, Copy)]
 pub enum Units {
     Fahrenheit,
@@ -11,20 +12,35 @@ pub enum Units {
     Kelvin,
 }
 
+/// Information about the temperature at which the system takes action to reduce the temperature of a thermal zone.
 pub struct TripPoint {
+    /// A numerical identifier for the trip point.
     pub number: u8,
+    /// The type of action the system takes when the trip point is reached.
     pub action_type: String,
+    /// The temperature marked as a threshold.
     pub temperature: f32,
+    /// The units of the temperature data.
     pub units: Units,
 }
 
+/// Information about a zone monitored by a temperature sensor.
 pub struct ThermalSensor {
+    /// The name used by ACPI to refer to the sensor.
     pub name: String,
+    /// The current temperature measured by the sensor.
     pub current_temperature: f32,
+    /// The units of the temperature data.
     pub units: Units,
+    /// A list of the trip points configured for the zone.
     pub trip_points: Vec<TripPoint>,
 }
 
+/// Check the ACPI system for all thermal sensors the OS knows about.
+///
+/// # Arguments
+///
+/// * `path` - The path to thermal zone entries produced by the ACPI subsystem.
 pub fn get_thermal_sensor_info(
     path: &path::Path,
     units: Units,
@@ -45,6 +61,11 @@ pub fn get_thermal_sensor_info(
 }
 
 impl ThermalSensor {
+    /// Create a new thermal sensor object from data from the ACPI subsystem.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The path to the ACPI device.
     pub fn new(path: &path::Path, units: Units) -> Result<ThermalSensor, Box<dyn Error>> {
         let name = String::from(path.file_name().unwrap().to_str().unwrap());
         let mut trip_points: Vec<TripPoint> = vec![];
@@ -81,6 +102,13 @@ impl ThermalSensor {
 }
 
 impl TripPoint {
+    /// Create a new trip point object from data from the ACPI subsystem.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The path to the ACPI device trip points are configured for.
+    /// * `number` - The numerical id of the trip point.
+    /// * `units` - The units to convert the temperature data to.
     pub fn new(path: &path::Path, number: u8, units: Units) -> Result<TripPoint, Box<dyn Error>> {
         let action_type = String::from(
             parse_entry_file(&path.join(format!("trip_point_{}_type", number)))?.unwrap(),
@@ -99,6 +127,12 @@ impl TripPoint {
     }
 }
 
+/// Convert a temperature value to a different scale from degrees Celsius.
+///
+/// # Arguments
+///
+/// * `temperature` - The measurement to convert in Celsius.
+/// * `units` - The measurement scale to convert to.
 fn convert_from_celsius(temperature: f32, units: Units) -> f32 {
     match units {
         Units::Celsius => temperature,
