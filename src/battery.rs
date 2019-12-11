@@ -13,20 +13,34 @@ pub enum ChargingState {
     Full,
 }
 
-/// Metadata pertaining to a battery including batteries and AC adapters.
+/// Metadata pertaining to a battery.
 pub struct BatteryInfo {
+    /// The name used by ACPI to refer to the device.
     pub name: String,
+    /// The charge remaining in the battery in units of mAh.
     pub remaining_capacity: u32,
+    /// The rate at which the charge of the battery is changing in mA.
     pub present_rate: u32,
+    /// The current voltage of the battery in mV.
     pub voltage: u32,
+    /// The charge available in the battery at the time of manufacture in units of mAh.
     pub design_capacity: u32,
+    /// The charge available in the battery at the last time the device was charged to full in
+    /// units of mAh.
     pub last_capacity: u32,
+    /// The time remaining until the battery reaches full charge or empty.
     pub time_remaining: time::Duration,
+    /// The ratio of the remaining charge to the full charge.
     pub percentage: f32,
+    /// The state of the battery's charging.
     pub state: ChargingState,
 }
 
 /// Returns a vector of data on power supplies in the system or any errors encountered.
+///
+/// # Arguments
+///
+/// * `path` - The path to battery entries produced by the ACPI subsystem.
 pub fn get_battery_info(path: &path::Path) -> Result<Vec<BatteryInfo>, Box<dyn Error>> {
     let mut results: Vec<BatteryInfo> = vec![];
 
@@ -48,7 +62,7 @@ impl BatteryInfo {
     ///
     /// # Arguments
     ///
-    /// * `path` - A path to a directory entry of an ACPI device containing data files for the device
+    /// * `path` - The path to the ACPI device.
     ///
     /// # Example
     /// ```
@@ -64,6 +78,11 @@ impl BatteryInfo {
     }
 }
 
+/// Parses a battery ACPI device entry which reports capacity in units of mAh.
+///
+/// # Arguments
+///
+/// * `path` - The path to the ACPI device.
 fn parse_capacity_supply(path: &path::Path) -> Result<BatteryInfo, Box<dyn Error>> {
     let voltage = parse_file_to_i32(&path.join("voltage_now"), 1000)?.unwrap() as u32;
     let remaining_capacity = parse_file_to_i32(&path.join("charge_now"), 1000)?.unwrap() as u32;
@@ -106,6 +125,11 @@ fn parse_capacity_supply(path: &path::Path) -> Result<BatteryInfo, Box<dyn Error
     })
 }
 
+/// Parses a battery ACPI device entry which reports capacity in units of mWh.
+///
+/// # Arguments
+///
+/// * `path` - The path to the ACPI device.
 fn parse_energy_supply(path: &path::Path) -> Result<BatteryInfo, Box<dyn Error>> {
     let voltage = parse_file_to_i32(&path.join("voltage_now"), 1000)?.unwrap() as u32;
     let remaining_capacity =
@@ -150,10 +174,26 @@ fn parse_energy_supply(path: &path::Path) -> Result<BatteryInfo, Box<dyn Error>>
     })
 }
 
+/// Determines the percentage of full charge from the current charge and the full charge
+/// measurements.
+///
+/// # Arguments
+///
+/// * `remaining_capacity` - The current charge of the battery in mAh.
+/// * `full_capacity` - The full charge of the battery in mAh.
 fn determine_charge_percentage(remaining_capacity: u32, full_capacity: u32) -> f32 {
     (remaining_capacity as f32) * 100.0 / (full_capacity as f32)
 }
 
+/// Determines the amount of time until the battery finishes charging or until the battery is
+/// depleted.
+///
+/// # Arguments
+///
+/// * `remaining_capacity` - The current charge of the battery in mAh.
+/// * `full_capacity` - The full charge of the battery in mAh.
+/// * `present_rate` - The rate at which the current charge is changing in mA.
+/// * `state` - Whether the battery is charging or discharging energy.
 fn determine_time_to_state_change(
     remaining_capacity: u32,
     full_capacity: u32,
@@ -173,6 +213,7 @@ fn determine_time_to_state_change(
     }
 }
 
+/// An enumeration of different types of units with which the ACPI subsystem reports capacity.
 #[derive(Clone)]
 enum ReportType {
     Capacity,
@@ -183,7 +224,7 @@ enum ReportType {
 ///
 /// # Arguments
 ///
-/// * `path` - A path to the device's files
+/// * `path` - The path to the ACPI device.
 fn determine_reporting_type(path: &path::Path) -> Result<ReportType, Box<dyn Error>> {
     let capacity_files = vec!["charge_now", "charge_full", "charge_full_design"];
     let energy_files = vec!["energy_now", "energy_full", "energy_full_design"];
