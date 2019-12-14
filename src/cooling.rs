@@ -52,9 +52,9 @@ impl CoolingDevice {
     /// * `path` - The path to the cooling device entry.
     pub fn new(path: &path::Path) -> Result<CoolingDevice, Box<dyn Error>> {
         let name = String::from(path.file_name().unwrap().to_str().unwrap());
-        let current_state = parse_file_to_i32(&path.join("cur_state"), 1)?.unwrap();
-        let max_state = parse_file_to_i32(&path.join("max_state"), 1)?.unwrap();
-        let device_type = parse_entry_file(&path.join("type"))?.unwrap();
+        let current_state = parse_file_to_i32(&path.join("cur_state"), 1)?;
+        let max_state = parse_file_to_i32(&path.join("max_state"), 1)?;
+        let device_type = parse_entry_file(&path.join("type"))?;
 
         let status = if current_state >= 0 {
             Some(CoolingStatus {

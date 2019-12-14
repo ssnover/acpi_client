@@ -29,17 +29,17 @@ pub fn is_thermal_sensor(device_path: &path::Path) -> bool {
 /// # Arguments
 ///
 /// * `path` - A path to the file to parse
-pub fn parse_entry_file(path: &path::Path) -> Result<Option<String>, Box<dyn Error>> {
+pub fn parse_entry_file(path: &path::Path) -> Result<String, Box<dyn Error>> {
     let mut result = String::new();
 
     if path.is_file() {
         let mut f = fs::File::open(path)?;
         f.read_to_string(&mut result)?;
         let result = result.trim();
-        return Ok(Some(String::from(result)));
+        return Ok(String::from(result));
     }
 
-    Ok(None)
+    Err(Box::new(AcpiError(String::from(""))))
 }
 
 /// Parses a file and converts the resulting contents to an integer.
@@ -48,10 +48,6 @@ pub fn parse_entry_file(path: &path::Path) -> Result<Option<String>, Box<dyn Err
 ///
 /// * `path` - A path to the file to parse
 /// * `scalar` - A number to divide the output by before returning it
-pub fn parse_file_to_i32(path: &path::Path, scalar: i32) -> Result<Option<i32>, Box<dyn Error>> {
-    let result = match parse_entry_file(path)? {
-        Some(val) => Some(val.parse::<i32>()? / scalar),
-        None => None,
-    };
-    Ok(result)
+pub fn parse_file_to_i32(path: &path::Path, scalar: i32) -> Result<i32, Box<dyn Error>> {
+    Ok(parse_entry_file(path)?.parse::<i32>()? / scalar)
 }

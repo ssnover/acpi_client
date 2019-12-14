@@ -31,7 +31,7 @@ pub fn get_ac_adapter_info(path: &path::Path) -> Result<Vec<ACAdapterInfo>, Box<
 
     for entry in read_dir(&path)? {
         let path = entry?.path();
-        if !determine_is_battery(parse_entry_file(&path.join("type"))?.unwrap()) {
+        if !determine_is_battery(parse_entry_file(&path.join("type"))?) {
             let adapter = ACAdapterInfo::new(&path);
             if adapter.is_ok() {
                 results.push(adapter?);
@@ -51,7 +51,6 @@ impl ACAdapterInfo {
     pub fn new(path: &path::Path) -> Result<ACAdapterInfo, Box<dyn Error>> {
         let name = String::from(path.file_name().unwrap().to_str().unwrap());
         let status = parse_entry_file(&path.join("online"))?
-            .unwrap()
             .trim()
             .to_lowercase();
         let status = if status == "1" {

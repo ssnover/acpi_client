@@ -46,7 +46,7 @@ pub fn get_battery_info(path: &path::Path) -> Result<Vec<BatteryInfo>, Box<dyn E
 
     for entry in fs::read_dir(&path)? {
         let path = entry?.path();
-        if determine_is_battery(parse_entry_file(&path.join("type"))?.unwrap()) {
+        if determine_is_battery(parse_entry_file(&path.join("type"))?) {
             let ps = BatteryInfo::new(&path);
             if ps.is_ok() {
                 results.push(ps?);
@@ -84,14 +84,13 @@ impl BatteryInfo {
 ///
 /// * `path` - The path to the ACPI device.
 fn parse_capacity_supply(path: &path::Path) -> Result<BatteryInfo, Box<dyn Error>> {
-    let voltage = parse_file_to_i32(&path.join("voltage_now"), 1000)?.unwrap() as u32;
-    let remaining_capacity = parse_file_to_i32(&path.join("charge_now"), 1000)?.unwrap() as u32;
-    let present_rate = parse_file_to_i32(&path.join("current_now"), 1000)?.unwrap() as u32;
+    let voltage = parse_file_to_i32(&path.join("voltage_now"), 1000)? as u32;
+    let remaining_capacity = parse_file_to_i32(&path.join("charge_now"), 1000)? as u32;
+    let present_rate = parse_file_to_i32(&path.join("current_now"), 1000)? as u32;
     let design_capacity =
-        parse_file_to_i32(&path.join("charge_full_design"), 1000)?.unwrap() as u32;
-    let last_capacity = parse_file_to_i32(&path.join("charge_full"), 1000)?.unwrap() as u32;
+        parse_file_to_i32(&path.join("charge_full_design"), 1000)? as u32;
+    let last_capacity = parse_file_to_i32(&path.join("charge_full"), 1000)? as u32;
     let status_str = parse_entry_file(&path.join("status"))?
-        .unwrap()
         .trim()
         .to_lowercase();
     let state = if status_str == "charging" {
@@ -131,16 +130,15 @@ fn parse_capacity_supply(path: &path::Path) -> Result<BatteryInfo, Box<dyn Error
 ///
 /// * `path` - The path to the ACPI device.
 fn parse_energy_supply(path: &path::Path) -> Result<BatteryInfo, Box<dyn Error>> {
-    let voltage = parse_file_to_i32(&path.join("voltage_now"), 1000)?.unwrap() as u32;
+    let voltage = parse_file_to_i32(&path.join("voltage_now"), 1000)? as u32;
     let remaining_capacity =
-        parse_file_to_i32(&path.join("energy_now"), 1000)?.unwrap() as u32 / voltage;
-    let present_rate = parse_file_to_i32(&path.join("current_now"), 1000)?.unwrap() as u32;
+        parse_file_to_i32(&path.join("energy_now"), 1000)? as u32 / voltage;
+    let present_rate = parse_file_to_i32(&path.join("current_now"), 1000)? as u32;
     let design_capacity =
-        parse_file_to_i32(&path.join("energy_full_design"), 1000)?.unwrap() as u32 / voltage;
+        parse_file_to_i32(&path.join("energy_full_design"), 1000)? as u32 / voltage;
     let last_capacity =
-        parse_file_to_i32(&path.join("energy_full"), 1000)?.unwrap() as u32 / voltage;
+        parse_file_to_i32(&path.join("energy_full"), 1000)? as u32 / voltage;
     let status_str = parse_entry_file(&path.join("status"))?
-        .unwrap()
         .trim()
         .to_lowercase();
     let state = if status_str == "charging" {
