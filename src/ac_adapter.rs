@@ -49,7 +49,7 @@ impl ACAdapterInfo {
     ///
     /// * `path` - The path to the ACPI device.
     pub fn new(path: &path::Path) -> Result<ACAdapterInfo, Box<dyn Error>> {
-        let name = String::from(path.file_name().unwrap().to_str().unwrap());
+        let name = get_device_name(path)?;
         let status = parse_entry_file(&path.join("online"))?
             .trim()
             .to_lowercase();
@@ -63,9 +63,6 @@ impl ACAdapterInfo {
             )));
         };
 
-        Ok(ACAdapterInfo {
-            name: name,
-            status: status,
-        })
+        Ok(ACAdapterInfo { name, status })
     }
 }

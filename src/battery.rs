@@ -87,29 +87,17 @@ fn parse_capacity_supply(path: &path::Path) -> Result<BatteryInfo, Box<dyn Error
     let voltage = parse_file_to_i32(&path.join("voltage_now"), 1000)? as u32;
     let remaining_capacity = parse_file_to_i32(&path.join("charge_now"), 1000)? as u32;
     let present_rate = parse_file_to_i32(&path.join("current_now"), 1000)? as u32;
-    let design_capacity =
-        parse_file_to_i32(&path.join("charge_full_design"), 1000)? as u32;
+    let design_capacity = parse_file_to_i32(&path.join("charge_full_design"), 1000)? as u32;
     let last_capacity = parse_file_to_i32(&path.join("charge_full"), 1000)? as u32;
-    let status_str = parse_entry_file(&path.join("status"))?
-        .trim()
-        .to_lowercase();
-    let state = if status_str == "charging" {
-        Some(ChargingState::Charging)
-    } else if status_str == "discharging" {
-        Some(ChargingState::Discharging)
-    } else if status_str == "full" {
-        Some(ChargingState::Full)
-    } else {
-        None
-    };
+    let state = parse_state_from_str(
+        parse_entry_file(&path.join("status"))?
+            .trim()
+            .to_lowercase(),
+    )?;
     let percentage = determine_charge_percentage(remaining_capacity, last_capacity);
-    let time_remaining = determine_time_to_state_change(
-        remaining_capacity,
-        last_capacity,
-        present_rate,
-        state.unwrap(),
-    );
-    let name = String::from(path.file_name().unwrap().to_str().unwrap());
+    let time_remaining =
+        determine_time_to_state_change(remaining_capacity, last_capacity, present_rate, state);
+    let name = get_device_name(path)?;
 
     Ok(BatteryInfo {
         name,
@@ -120,7 +108,7 @@ fn parse_capacity_supply(path: &path::Path) -> Result<BatteryInfo, Box<dyn Error
         last_capacity: last_capacity,
         percentage,
         time_remaining,
-        state: state.unwrap(),
+        state: state,
     })
 }
 
@@ -131,33 +119,20 @@ fn parse_capacity_supply(path: &path::Path) -> Result<BatteryInfo, Box<dyn Error
 /// * `path` - The path to the ACPI device.
 fn parse_energy_supply(path: &path::Path) -> Result<BatteryInfo, Box<dyn Error>> {
     let voltage = parse_file_to_i32(&path.join("voltage_now"), 1000)? as u32;
-    let remaining_capacity =
-        parse_file_to_i32(&path.join("energy_now"), 1000)? as u32 / voltage;
+    let remaining_capacity = parse_file_to_i32(&path.join("energy_now"), 1000)? as u32 / voltage;
     let present_rate = parse_file_to_i32(&path.join("current_now"), 1000)? as u32;
     let design_capacity =
         parse_file_to_i32(&path.join("energy_full_design"), 1000)? as u32 / voltage;
-    let last_capacity =
-        parse_file_to_i32(&path.join("energy_full"), 1000)? as u32 / voltage;
-    let status_str = parse_entry_file(&path.join("status"))?
-        .trim()
-        .to_lowercase();
-    let state = if status_str == "charging" {
-        Some(ChargingState::Charging)
-    } else if status_str == "discharging" {
-        Some(ChargingState::Discharging)
-    } else if status_str == "full" {
-        Some(ChargingState::Full)
-    } else {
-        None
-    };
+    let last_capacity = parse_file_to_i32(&path.join("energy_full"), 1000)? as u32 / voltage;
+    let state = parse_state_from_str(
+        parse_entry_file(&path.join("status"))?
+            .trim()
+            .to_lowercase(),
+    )?;
     let percentage = determine_charge_percentage(remaining_capacity, last_capacity);
-    let time_remaining = determine_time_to_state_change(
-        remaining_capacity,
-        last_capacity,
-        present_rate,
-        state.unwrap(),
-    );
-    let name = String::from(path.file_name().unwrap().to_str().unwrap());
+    let time_remaining =
+        determine_time_to_state_change(remaining_capacity, last_capacity, present_rate, state);
+    let name = get_device_name(path)?;
 
     Ok(BatteryInfo {
         name,
@@ -168,7 +143,7 @@ fn parse_energy_supply(path: &path::Path) -> Result<BatteryInfo, Box<dyn Error>>
         last_capacity,
         percentage,
         time_remaining,
-        state: state.unwrap(),
+        state,
     })
 }
 
@@ -208,6 +183,25 @@ fn determine_time_to_state_change(
             time::Duration::new(seconds, 0)
         }
         _ => time::Duration::new(0, 0),
+    }
+}
+
+/// Parses a ChargingState value from a string representation.
+///
+/// # Arguments
+///
+/// * `state_str` - A trimmed string containing the state read from the battery device's file.
+fn parse_state_from_str(state_str: String) -> Result<ChargingState, Box<dyn Error>> {
+    if state_str == "charging" {
+        Ok(ChargingState::Charging)
+    } else if state_str == "discharging" {
+        Ok(ChargingState::Discharging)
+    } else if state_str == "full" {
+        Ok(ChargingState::Full)
+    } else {
+        Err(Box::new(AcpiError(String::from(
+            "Unexpected value reported for state",
+        ))))
     }
 }
 

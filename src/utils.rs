@@ -24,6 +24,21 @@ pub fn is_thermal_sensor(device_path: &path::Path) -> bool {
     temperature_file_path.exists()
 }
 
+pub fn get_device_name(path: &path::Path) -> Result<String, Box<dyn Error>> {
+    Ok(String::from(
+        path.file_name()
+            .ok_or(Box::new(AcpiError(String::from(format!(
+                "The given path was not a file {}",
+                path.to_str().expect("Invalid path")
+            )))))
+            .and_then(|arg| {
+                arg.to_str().ok_or(Box::new(AcpiError(String::from(
+                    "The filename was not able to be parsed.",
+                ))))
+            })?,
+    ))
+}
+
 /// Returns a string parsed from a file in a directory.
 ///
 /// # Arguments
@@ -39,7 +54,10 @@ pub fn parse_entry_file(path: &path::Path) -> Result<String, Box<dyn Error>> {
         return Ok(String::from(result));
     }
 
-    Err(Box::new(AcpiError(String::from(""))))
+    Err(Box::new(AcpiError(String::from(format!(
+        "The given path was not a file {}",
+        path.to_str().expect("Invalid path")
+    )))))
 }
 
 /// Parses a file and converts the resulting contents to an integer.
