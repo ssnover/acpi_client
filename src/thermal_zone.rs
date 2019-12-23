@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::fs;
 use std::path;
 
@@ -44,7 +43,7 @@ pub struct ThermalSensor {
 pub fn get_thermal_sensor_info(
     path: &path::Path,
     units: Units,
-) -> Result<Vec<ThermalSensor>, Box<dyn Error>> {
+) -> Result<Vec<ThermalSensor>, AcpiClientError> {
     let mut results: Vec<ThermalSensor> = vec![];
 
     for entry in fs::read_dir(&path)? {
@@ -66,7 +65,7 @@ impl ThermalSensor {
     /// # Arguments
     ///
     /// * `path` - The path to the ACPI device.
-    pub fn new(path: &path::Path, units: Units) -> Result<ThermalSensor, Box<dyn Error>> {
+    pub fn new(path: &path::Path, units: Units) -> Result<ThermalSensor, AcpiClientError> {
         let name = get_device_name(path)?;
         let mut trip_points: Vec<TripPoint> = vec![];
         let current_temperature = convert_from_celsius(
@@ -109,7 +108,7 @@ impl TripPoint {
     /// * `path` - The path to the ACPI device trip points are configured for.
     /// * `number` - The numerical id of the trip point.
     /// * `units` - The units to convert the temperature data to.
-    pub fn new(path: &path::Path, number: u8, units: Units) -> Result<TripPoint, Box<dyn Error>> {
+    pub fn new(path: &path::Path, number: u8, units: Units) -> Result<TripPoint, AcpiClientError> {
         let action_type = String::from(parse_entry_file(
             &path.join(format!("trip_point_{}_type", number)),
         )?);

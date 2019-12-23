@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::fs;
 use std::path;
 use std::time;
@@ -41,7 +40,7 @@ pub struct BatteryInfo {
 /// # Arguments
 ///
 /// * `path` - The path to battery entries produced by the ACPI subsystem.
-pub fn get_battery_info(path: &path::Path) -> Result<Vec<BatteryInfo>, Box<dyn Error>> {
+pub fn get_battery_info(path: &path::Path) -> Result<Vec<BatteryInfo>, AcpiClientError> {
     let mut results: Vec<BatteryInfo> = vec![];
 
     for entry in fs::read_dir(&path)? {
@@ -69,7 +68,7 @@ impl BatteryInfo {
     /// let directory = std::path::Path::new("/sys/class/power_supply/BAT1");
     /// let ps_info = acpi_client::BatteryInfo::new(&directory);
     /// ```
-    pub fn new(path: &path::Path) -> Result<BatteryInfo, Box<dyn Error>> {
+    pub fn new(path: &path::Path) -> Result<BatteryInfo, AcpiClientError> {
         // Check whether the system reports energy or capacity
         match determine_reporting_type(&path)? {
             ReportType::Capacity => return parse_capacity_supply(&path),
@@ -83,7 +82,7 @@ impl BatteryInfo {
 /// # Arguments
 ///
 /// * `path` - The path to the ACPI device.
-fn parse_capacity_supply(path: &path::Path) -> Result<BatteryInfo, Box<dyn Error>> {
+fn parse_capacity_supply(path: &path::Path) -> Result<BatteryInfo, AcpiClientError> {
     let voltage = parse_file_to_i32(&path.join("voltage_now"), 1000)? as u32;
     let remaining_capacity = parse_file_to_i32(&path.join("charge_now"), 1000)? as u32;
     let present_rate = parse_file_to_i32(&path.join("current_now"), 1000)? as u32;
@@ -117,7 +116,7 @@ fn parse_capacity_supply(path: &path::Path) -> Result<BatteryInfo, Box<dyn Error
 /// # Arguments
 ///
 /// * `path` - The path to the ACPI device.
-fn parse_energy_supply(path: &path::Path) -> Result<BatteryInfo, Box<dyn Error>> {
+fn parse_energy_supply(path: &path::Path) -> Result<BatteryInfo, AcpiClientError> {
     let voltage = parse_file_to_i32(&path.join("voltage_now"), 1000)? as u32;
     let remaining_capacity = parse_file_to_i32(&path.join("energy_now"), 1000)? as u32 / voltage;
     let present_rate = parse_file_to_i32(&path.join("current_now"), 1000)? as u32;
@@ -191,7 +190,7 @@ fn determine_time_to_state_change(
 /// # Arguments
 ///
 /// * `state_str` - A trimmed string containing the state read from the battery device's file.
-fn parse_state_from_str(state_str: String) -> Result<ChargingState, Box<dyn Error>> {
+fn parse_state_from_str(state_str: String) -> Result<ChargingState, AcpiClientError> {
     if state_str == "charging" {
         Ok(ChargingState::Charging)
     } else if state_str == "discharging" {
@@ -199,9 +198,10 @@ fn parse_state_from_str(state_str: String) -> Result<ChargingState, Box<dyn Erro
     } else if state_str == "full" {
         Ok(ChargingState::Full)
     } else {
-        Err(Box::new(AcpiError(String::from(
-            "Unexpected value reported for state",
-        ))))
+        Err(AcpiClientError::InvalidInput(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            format!("Unrecognized charging state: {}", state_str),
+        )))
     }
 }
 
@@ -217,7 +217,7 @@ enum ReportType {
 /// # Arguments
 ///
 /// * `path` - The path to the ACPI device.
-fn determine_reporting_type(path: &path::Path) -> Result<ReportType, Box<dyn Error>> {
+fn determine_reporting_type(path: &path::Path) -> Result<ReportType, AcpiClientError> {
     let capacity_files = vec!["charge_now", "charge_full", "charge_full_design"];
     let energy_files = vec!["energy_now", "energy_full", "energy_full_design"];
     if capacity_files.iter().all(|file| {
@@ -225,16 +225,17 @@ fn determine_reporting_type(path: &path::Path) -> Result<ReportType, Box<dyn Err
         path_buffer.push(file);
         path_buffer.exists()
     }) {
-        return Ok(ReportType::Capacity);
+        Ok(ReportType::Capacity)
     } else if energy_files.iter().all(|file| {
         let mut path_buffer = path::Path::new(path).to_path_buf();
         path_buffer.push(file);
         path_buffer.exists()
     }) {
-        return Ok(ReportType::Energy);
+        Ok(ReportType::Energy)
     } else {
-        return Err(Box::new(AcpiError(
-            "Cannot determine if device supports energy or capacity reporting.".into(),
-        )));
+        Err(AcpiClientError::InvalidInput(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "Unrecognized reporting type.",
+        )))
     }
 }

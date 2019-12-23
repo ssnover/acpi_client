@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::fs::read_dir;
 use std::path;
 
@@ -28,7 +27,7 @@ pub struct CoolingDevice {
 /// # Arguments
 ///
 /// * `path` - The path to the cooling device entries produced by the ACPI subsystem.
-pub fn get_cooling_device_info(path: &path::Path) -> Result<Vec<CoolingDevice>, Box<dyn Error>> {
+pub fn get_cooling_device_info(path: &path::Path) -> Result<Vec<CoolingDevice>, AcpiClientError> {
     let mut results: Vec<CoolingDevice> = vec![];
 
     for entry in read_dir(&path)? {
@@ -50,7 +49,7 @@ impl CoolingDevice {
     /// # Arguments
     ///
     /// * `path` - The path to the cooling device entry.
-    pub fn new(path: &path::Path) -> Result<CoolingDevice, Box<dyn Error>> {
+    pub fn new(path: &path::Path) -> Result<CoolingDevice, AcpiClientError> {
         let name = get_device_name(path)?;
         let current_state = parse_file_to_i32(&path.join("cur_state"), 1)?;
         let max_state = parse_file_to_i32(&path.join("max_state"), 1)?;
