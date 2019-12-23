@@ -5,6 +5,11 @@ authors = ["ssnover95 <ssnover95@gmail.com>"]
 edition = "2018"
 description = "A library for parsing ACPI data from the Linux filesystem."
 license = "MIT"
+readme = "README.md"
+documentation = "https://docs.rs/acpi_client/2.0.0/acpi_client/"
+repository = "https://github.com/ssnover95/acpi_client"
+categories = ["hardware-support"]
+keywords = ["acpi", "linux", "sysfs", "battery"]
 
 [dependencies]
 
