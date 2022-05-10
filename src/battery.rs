@@ -119,7 +119,11 @@ fn parse_capacity_supply(path: &path::Path) -> Result<BatteryInfo, AcpiClientErr
 fn parse_energy_supply(path: &path::Path) -> Result<BatteryInfo, AcpiClientError> {
     let voltage = parse_file_to_i32(&path.join("voltage_now"), 1000)? as u32;
     let remaining_capacity = parse_file_to_i32(&path.join("energy_now"), 1000)? as u32 / voltage;
-    let present_rate = parse_file_to_i32(&path.join("current_now"), 1000)? as u32;
+    let present_rate = if let Ok(power_now) = parse_file_to_i32(&path.join("power_now"), 1000) {
+        power_now as u32
+    } else {
+        parse_file_to_i32(&path.join("current_now"), 1000)? as u32
+    };
     let design_capacity =
         parse_file_to_i32(&path.join("energy_full_design"), 1000)? as u32 / voltage;
     let last_capacity = parse_file_to_i32(&path.join("energy_full"), 1000)? as u32 / voltage;
